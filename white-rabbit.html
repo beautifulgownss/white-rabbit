@@ -339,45 +339,66 @@ const errEl = document.getElementById("err");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // --- digital rain (slow, sparse, behind everything) ---
+// --- digital rain with requestAnimationFrame + Visibility API ---
 const canvas = document.getElementById("rain");
 const ctx = canvas.getContext("2d");
 const glyphs = "アイウエオカキクケコサシ0123456789<>/{}[]=";
-let cols = 0, drops = [], rainTimer = null, rainOn = false;
+let cols = 0, drops = [], rainId = null, rainActive = false;
 const FS = 16;
 
 function sizeRain() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   cols = Math.floor(canvas.width / FS);
-  drops = new Array(cols).fill(0).map(() => Math.random() * -60);
+  drops = new Array(cols).fill(0).map(() => Math.random() * -canvas.height);
 }
+
 function drawRain() {
-  ctx.fillStyle = "rgba(10,15,11,0.10)";
+  if (!rainActive || document.hidden) {
+    rainId = requestAnimationFrame(drawRain);
+    return;
+  }
+  
+  ctx.fillStyle = "rgba(10,15,11,0.12)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.font = FS + "px monospace";
   ctx.fillStyle = "rgba(127,227,161,0.20)";
+  
   for (let i = 0; i < cols; i++) {
-    if (i % 2 === 0) continue;            // sparser columns
-    if (Math.random() > 0.75) {
-      const ch = glyphs[(Math.random() * glyphs.length) | 0];
-      ctx.fillText(ch, i * FS, drops[i] * FS);
-    }
-    if (drops[i] * FS > canvas.height && Math.random() > 0.98) drops[i] = 0;
-    drops[i] += 0.45;                       // slow fall
+    if (i % 2 === 0) continue; // sparse
+    const ch = glyphs[(Math.random() * glyphs.length) | 0];
+    const x = i * FS;
+    const y = drops[i] * FS;
+    ctx.fillText(ch, x, y);
+    if (y > canvas.height && Math.random() > 0.98) drops[i] = 0;
+    drops[i] += 0.20;
   }
+  rainId = requestAnimationFrame(drawRain);
 }
+
 function startRain() {
   if (reduceMotion) { canvas.style.opacity = "0"; return; }
   sizeRain();
-  rainOn = true;
-  rainTimer = setInterval(() => { if (rainOn) drawRain(); }, 85);
+  rainActive = true;
+  if (!rainId) rainId = requestAnimationFrame(drawRain);
 }
+
 function stopRain() {
-  rainOn = false;
-  if (rainTimer) { clearInterval(rainTimer); rainTimer = null; }
+  rainActive = false;
+  if (rainId) { cancelAnimationFrame(rainId); rainId = null; }
   canvas.style.opacity = "0";
 }
-window.addEventListener("resize", () => { if (rainOn) sizeRain(); });
+
+// Pause when tab is hidden
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && rainActive) {
+    // drawRain will skip rendering, but keep the loop alive
+  } else if (!document.hidden && rainActive && !rainId) {
+    rainId = requestAnimationFrame(drawRain);
+  }
+});
+
+// Start the rain (keep this line – it's already in your code)
 startRain();
 
 // --- conversation ---
