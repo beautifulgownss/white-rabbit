@@ -94,31 +94,141 @@
     transition: color 1.6s ease;
   }
 
+  /* --- the two paths: poles the conversation orbits, and a gauge of where weight gathers --- */
   .paths {
     display: none;
     border-top: 1px solid rgba(116,169,138,0.22);
     border-bottom: 1px solid rgba(116,169,138,0.22);
     margin: 6px 0 4px;
+    transition: padding 1.2s ease, border-color 1.6s ease;
   }
   .paths.shown { display: grid; grid-template-columns: 1fr 1px 1fr; }
-  .path { padding: 14px 16px; text-align: center; }
-  .path .label {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--accent-dim);
-    margin-bottom: 7px;
-    transition: color 1.6s ease;
+  .path {
+    position: relative;
+    overflow: hidden;
+    padding: 14px 16px;
+    text-align: center;
+    transition: padding 1.2s ease;
   }
-  .path .text {
+  /* the fill is the felt weight, rising from the floor of each column */
+  .path .fill {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 0;
+    background: linear-gradient(transparent, var(--accent) 140%);
+    opacity: 0.14;
+    pointer-events: none;
+    transition: height 0.9s cubic-bezier(.22,.61,.36,1), opacity 1.6s ease, background 1.6s ease;
+  }
+  .path .ptext {
+    position: relative;
+    z-index: 1;
     font-family: var(--mono);
     font-size: 15px;
     line-height: 1.35;
     color: var(--voice-c);
-    transition: color 1.6s ease;
+    transition: color 1.6s ease, font-size 1.2s ease;
+  }
+  /* transient mark that rises when a reason lands, then fades — you feel weight gather */
+  .floatmark {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 8px;
+    z-index: 2;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    text-align: center;
+    color: var(--accent);
+    pointer-events: none;
+    animation: floatup 2.2s ease forwards;
+  }
+  .floatmark.stated { color: var(--accent-dim); font-size: 10px; }
+  @keyframes floatup {
+    0%   { opacity: 0; transform: translateY(6px); }
+    18%  { opacity: 0.9; }
+    75%  { opacity: 0.5; }
+    100% { opacity: 0; transform: translateY(-22px); }
+  }
+  /* the full inventory of fragments — hidden during the interview, revealed in the room */
+  .frags {
+    display: none;
+    position: relative;
+    z-index: 1;
+    margin-top: 14px;
+    flex-direction: column;
+    gap: 7px;
+    align-items: center;
+  }
+  .frag {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.3;
+    letter-spacing: 0.01em;
+  }
+  /* stated: the reasons you'd defend — outlined, cool, quiet */
+  .frag.stated { color: var(--accent-dim); opacity: 0.85; }
+  .frag.stated::before { content: "· "; opacity: 0.6; }
+  /* felt: where the language actually lit up — filled, warm, present */
+  .frag.felt {
+    color: var(--accent);
+    font-size: 14px;
+    text-shadow: 0 0 14px var(--accent);
   }
   .paths .divider { background: rgba(116,169,138,0.22); }
+  .paths .caption {
+    display: none;
+    grid-column: 1 / -1;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--accent-dim);
+    text-align: center;
+    padding-top: 18px;
+    opacity: 0;
+    transition: opacity 1.2s ease 0.6s, color 1.6s ease;
+  }
+
+  /* --- the room: when the mirror arrives, the interview recedes and the paths rise --- */
+  body.arrived .stage { justify-content: center; }
+  body.arrived header { padding: 24px 0 8px; }
+  body.arrived .tagline { opacity: 0; }
+  body.arrived .log {
+    max-height: 0;
+    opacity: 0;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+  }
+  body.arrived .paths { padding: 6px 0; }
+  body.arrived .path { padding: 30px 20px 34px; }
+  body.arrived .path .ptext { font-size: 17px; }
+  body.arrived .path .fill { opacity: 0.2; }
+  body.arrived .frags { display: flex; animation: rise 1s ease both 0.4s; }
+  body.arrived .paths .caption { display: block; opacity: 1; }
+
+  .mirror {
+    display: none;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 22px;
+    line-height: 1.6;
+    color: var(--voice-c);
+    text-align: center;
+    padding: 30px 6px 10px;
+    transition: color 1.6s ease;
+  }
+  body.arrived .mirror { display: block; animation: rise 1.1s ease both 0.7s; }
+  .mirror .handback {
+    display: block;
+    font-style: normal;
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    color: var(--accent-dim);
+    margin-top: 22px;
+    transition: color 1.6s ease;
+  }
 
   .log {
     flex: 1 1 auto;
@@ -230,6 +340,7 @@
 
   .actions { display: none; gap: 10px; padding: 4px 0 30px; flex-shrink: 0; }
   .actions.shown { display: flex; }
+  body.arrived .actions { justify-content: center; padding-top: 22px; animation: rise 1s ease both 0.9s; }
   .btn {
     font-family: var(--mono);
     font-size: 13px;
@@ -270,12 +381,23 @@
     </header>
 
     <div class="paths" id="paths">
-      <div class="path"><div class="text" id="pathA"></div></div>
+      <div class="path">
+        <div class="fill" id="fillA"></div>
+        <div class="ptext" id="pathA"></div>
+        <div class="frags" id="fragsA"></div>
+      </div>
       <div class="divider"></div>
-      <div class="path"><div class="text" id="pathB"></div></div>
+      <div class="path">
+        <div class="fill" id="fillB"></div>
+        <div class="ptext" id="pathB"></div>
+        <div class="frags" id="fragsB"></div>
+      </div>
+      <div class="caption">dim: the reasons you gave&nbsp;&nbsp;·&nbsp;&nbsp;glow: what kept pulling</div>
     </div>
 
     <div class="log" id="log" aria-live="polite"></div>
+
+    <div class="mirror" id="mirror" aria-live="polite"></div>
 
     <div class="actions" id="actions">
       <button class="btn primary" id="keep">keep this</button>
@@ -308,14 +430,24 @@ PRINCIPLES
 PHASES
 - framing: On the first message, reflect the decision back in one line, name the two paths as you hear them (set pathA and pathB to short labels, 1-4 words each), and ask your first real question.
 - interview: Keep asking, one question at a time. Surface values, fears, regrets, who they're performing for.
-- mirror: When the real weight has surfaced (usually after 5-8 exchanges), STOP asking. Reflect back the reasons they gave, what actually carries weight underneath, and the gap between them. Name it plainly and kindly. Do NOT pick for them.
-- close: One framing that hands the decision back — something they can carry out of the room. Warm. Done.
+- mirror: When the real weight has surfaced (usually after 5-8 exchanges), STOP asking. This is the destination — the interview ends here. Reflect back the reasons they gave, what actually carries weight underneath, and the gap between them. The person can now SEE where each kind of weight gathered on the two paths, so speak to it: the defensible reasons piled one way, the pull that kept surfacing the other. Name the gap plainly and kindly. Do NOT pick for them. Put the reflection in "message" and one warm closing line that hands the decision back in "handback".
+- close: Only if a full mirror hasn't happened. One framing that hands the decision back — put it in "message" and the hand-back line in "handback". Warm. Done.
 - safety: If they express crisis-adjacent distress (hopelessness, self-harm, not wanting to be here), LEAVE the decision frame entirely. Respond with plain care, encourage reaching out to someone they trust or a crisis line, and do not keep interviewing. Never assess risk clinically or mention methods.
+
+THE GAUGE (pulls)
+After framing, every time the person speaks, read their message for the reasoning underneath and emit 0-2 "pulls". A pull attaches a short fragment of their own reasoning to one path. Two kinds, and the difference is the whole point:
+- "stated": a reason they'd defend out loud — the sensible, responsible, justifiable surface. What they'd tell someone who asked.
+- "felt": where their language actually lit up, what they lingered on, flinched from, kept circling back to. The gravitational pull, often half-spoken or spoken against.
+A single message often holds both at once (the responsible reason toward one path, the ache toward the other) — that is exactly the gap to capture, so emit both.
+- "label": 2-4 lowercase words, concrete, in their own frame. Not therapy-speak, not a summary of the whole message, not a line that could go on a mug. ("the salary", "leaving maya", "what dad would say", "the quiet after").
+- "weight": 1 (a passing mention), 2 (real), 3 (this is heavy).
+- "toward": "A" or "B" — which path this reason supports.
+Only emit a pull when a genuine reason surfaced. A clarifying or throwaway message gets an empty list. Never invent weight that isn't there.
 
 OUTPUT
 Respond with ONLY a JSON object — no markdown, no code fences:
-{"phase":"framing|interview|mirror|close|safety","message":"...","pathA":"... or null","pathB":"... or null"}
-Set pathA and pathB at framing and keep them stable. "message" is what the person reads.`;
+{"phase":"framing|interview|mirror|close|safety","message":"...","pathA":"... or null","pathB":"... or null","handback":"... or null","pulls":[{"toward":"A","kind":"felt","label":"...","weight":2}]}
+Set pathA and pathB at framing and keep them stable. "message" is what the person reads. "handback" is used only on mirror/close. "pulls" is [] unless a reason surfaced.`;
 
 const state = {
   apiMessages: [],
@@ -327,6 +459,9 @@ const state = {
   mirrorText: "",
   done: false,
   busy: false,
+  // where reasoning has gathered — each entry { label, weight }
+  weights: { A: { stated: [], felt: [] }, B: { stated: [], felt: [] } },
+  arrived: false,
 };
 
 const log = document.getElementById("log");
@@ -449,7 +584,92 @@ function showPaths() {
   document.getElementById("pathB").textContent = state.pathB;
   document.getElementById("paths").classList.add("shown");
 }
-function enterReflecting() { document.body.classList.add("reflecting"); stopRain(); }
+// --- the gauge: reasoning gathering weight on the two paths ---
+function applyPulls(pulls) {
+  if (!Array.isArray(pulls)) return;
+  for (const p of pulls) {
+    if (!p) continue;
+    const side = p.toward === "B" ? "B" : (p.toward === "A" ? "A" : null);
+    const kind = p.kind === "stated" ? "stated" : (p.kind === "felt" ? "felt" : null);
+    if (!side || !kind) continue;
+    let label = String(p.label || "").trim().toLowerCase();
+    if (!label) continue;
+    if (label.length > 34) label = label.slice(0, 33).trim() + "…";
+    let w = Math.round(Number(p.weight));
+    if (!(w >= 1)) w = 1;
+    if (w > 3) w = 3;
+    state.weights[side][kind].push({ label, weight: w });
+    if (!state.arrived) floatMark(side, label, kind);
+  }
+  renderFills();
+}
+function colWeight(side) {
+  const c = state.weights[side];
+  const felt = c.felt.reduce((s, f) => s + f.weight, 0);
+  const stated = c.stated.reduce((s, f) => s + f.weight, 0);
+  return { felt, stated, heft: felt + stated * 0.4 };
+}
+function renderFills() {
+  const a = colWeight("A"), b = colWeight("B");
+  const max = Math.max(a.heft, b.heft, 6); // stable ceiling so the first marks read light
+  setFill("fillA", a.heft / max);
+  setFill("fillB", b.heft / max);
+}
+function setFill(id, ratio) {
+  const el = document.getElementById(id);
+  if (el) el.style.height = (Math.max(0, Math.min(1, ratio)) * 88) + "%";
+}
+function floatMark(side, label, kind) {
+  if (reduceMotion) return;
+  const path = document.getElementById(side === "A" ? "fillA" : "fillB").parentElement;
+  const m = document.createElement("div");
+  m.className = "floatmark" + (kind === "stated" ? " stated" : "");
+  m.textContent = label;
+  path.appendChild(m);
+  setTimeout(() => m.remove(), 2300);
+}
+function fragEl(label, kind) {
+  const e = document.createElement("div");
+  e.className = "frag " + kind;
+  e.textContent = label;
+  return e;
+}
+function renderFrags() {
+  for (const side of ["A", "B"]) {
+    const box = document.getElementById(side === "A" ? "fragsA" : "fragsB");
+    box.innerHTML = "";
+    const c = state.weights[side];
+    const byWeight = (x, y) => y.weight - x.weight;
+    [...c.felt].sort(byWeight).forEach(f => box.appendChild(fragEl(f.label, "felt")));
+    [...c.stated].sort(byWeight).forEach(f => box.appendChild(fragEl(f.label, "stated")));
+    if (!c.felt.length && !c.stated.length) {
+      const e = document.createElement("div");
+      e.className = "frag";
+      e.textContent = "—";
+      e.style.color = "var(--accent-dim)";
+      e.style.opacity = "0.45";
+      box.appendChild(e);
+    }
+  }
+}
+function enterRoom(message, handback) {
+  state.arrived = true;
+  state.mirrorText = message || "";
+  document.body.classList.add("reflecting");
+  document.body.classList.add("arrived");
+  stopRain();
+  renderFrags();
+  renderFills();
+  const m = document.getElementById("mirror");
+  m.textContent = message || "";
+  if (handback) {
+    const h = document.createElement("span");
+    h.className = "handback";
+    h.textContent = handback;
+    m.appendChild(h);
+  }
+  finish();
+}
 function finish() { state.done = true; dock.style.display = "none"; actions.classList.add("shown"); }
 
 function parseTurn(raw) {
@@ -461,7 +681,7 @@ function parseTurn(raw) {
 }
 function pacingNote() {
   if (state.lastPhase === "start") return "This is their opening message — the decision itself. Move to framing.";
-  if (state.userExchanges >= 8) return "You have explored enough. Move to the mirror now, then close.";
+  if (state.userExchanges >= 8) return "You have explored enough. Move to the mirror now — reflect the gap and hand it back in the same turn.";
   if (state.userExchanges >= 5) return "Enough may have surfaced. If the real weight is clear, move to the mirror.";
   return "Stay in the interview; keep following the thread.";
 }
@@ -507,18 +727,14 @@ async function handleSend() {
       state.pathB = turn.pathB;
       showPaths();
     }
+    applyPulls(turn.pulls);
     const phase = turn.phase || "interview";
     state.lastPhase = phase;
-    if (phase === "mirror") {
-      enterReflecting();
-      state.mirrorText = turn.message;
-      addCompanion(turn.message, true);
-    } else if (phase === "close") {
-      addCompanion(turn.message, document.body.classList.contains("reflecting"));
-      finish();
-    } else if (phase === "safety") {
+    if (phase === "safety") {
       addCompanion(turn.message);
       addCare();
+    } else if (phase === "mirror" || phase === "close") {
+      enterRoom(turn.message, turn.handback);
     } else {
       addCompanion(turn.message);
     }
@@ -558,12 +774,25 @@ input.addEventListener("keydown", (e) => {
 });
 send.addEventListener("click", handleSend);
 document.getElementById("over").addEventListener("click", () => location.reload());
+function weightSummary() {
+  const out = [];
+  [["A", state.pathA], ["B", state.pathB]].forEach(([side, name]) => {
+    const c = state.weights[side];
+    if (!c.felt.length && !c.stated.length) return;
+    out.push((name || side) + ":");
+    if (c.felt.length) out.push("  pulled toward — " + c.felt.map(f => f.label).join(", "));
+    if (c.stated.length) out.push("  reasons given — " + c.stated.map(f => f.label).join(", "));
+  });
+  return out.join("\n");
+}
 document.getElementById("keep").addEventListener("click", (e) => {
   const paths = (state.pathA && state.pathB) ? state.pathA + " | " + state.pathB : (state.pathA || state.pathB || "");
+  const gathered = weightSummary();
   const summary =
     "white rabbit — what surfaced\n\n" +
     "the decision: " + state.decision + "\n" +
     (paths ? "the two paths: " + paths + "\n" : "") +
+    (gathered ? "\nwhere the weight gathered:\n" + gathered + "\n" : "") +
     (state.mirrorText ? "\nwhat surfaced underneath:\n" + state.mirrorText + "\n" : "");
   navigator.clipboard.writeText(summary).then(() => {
     e.target.textContent = "copied";
